@@ -1,0 +1,69 @@
+version: "2"
+
+services:
+
+  rabbitmq_1:
+    image: rabbitmq:3-management
+    hostname: testhostname
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "secret string"
+      RABBITMQ_NODENAME: rabbit1
+    ports:
+      - "4369:4369"
+      - "5671:5671"
+      - "5672:5672"
+      - "15671:15671"
+      - "15672:15672"
+      - "25672:25672"
+  rabbitmq_2:
+    image: rabbitmq:3-management
+    hostname: node2
+    depends_on:
+      - rabbitmq_1
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "secret string"
+      RABBITMQ_NODENAME: rabbit2
+        
+  activemq:
+    image: webcenter/activemq:5.14.3
+    ports:
+      - "61616:61616"
+      - "8161:8161"
+    volumes: ["activemq-data:/opt/activemq/conf", "activemq-data:/data/activemq", "activemq-data:/var/log/activemq"]
+    environment:
+      ACTIVEMQ_REMOVE_DEFAULT_ACCOUNT: "true"
+      ACTIVEMQ_ADMIN_LOGIN: admin
+      ACTIVEMQ_ADMIN_PASSWORD: password
+      ACTIVEMQ_WRITE_LOGIN: write
+      ACTIVEMQ_WRITE_PASSWORD: password
+      ACTIVEMQ_READ_LOGIN: read
+      ACTIVEMQ_READ_PASSWORD: password
+      ACTIVEMQ_JMX_LOGIN: jmx
+      ACTIVEMQ_JMX_PASSWORD: password
+      ACTIVEMQ_STATIC_TOPICS: static-topic-1;static-topic-2
+      ACTIVEMQ_STATIC_QUEUES: static-queue-1;static-queue-2
+      ACTIVEMQ_ENABLED_SCHEDULER: "true"
+      ACTIVEMQ_MIN_MEMORY: 512
+      ACTIVEMQ_MAX_MEMORY: 2048
+  zookeeper:
+    image: wurstmeister/zookeeper:3.4.6
+    expose:
+      - "2181"
+
+  kafka:
+    image: wurstmeister/kafka:2.11-2.0.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    expose:
+      - "9093"
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:9093,OUTSIDE://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_LISTENERS: INSIDE://0.0.0.0:9093,OUTSIDE://0.0.0.0:9092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+
+volumes:
+  activemq-data: {}
